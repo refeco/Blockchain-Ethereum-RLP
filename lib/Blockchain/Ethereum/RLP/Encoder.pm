@@ -22,7 +22,9 @@ sub encode {
         my $output = '';
         $output .= $self->encode($_) for $input->@*;
 
-        return unpack("H*", $self->encode_length(length($output), 0xc0) . $output);
+        use bytes;
+        return $self->encode_length(length($output), 0xc0) . $output;
+        no bytes;
     }
 
     $input =~ s/^0x//g;
@@ -40,7 +42,7 @@ sub encode {
 sub encode_length {
     my ($self, $L, $offset) = @_;
 
-    return chr($L + $offset);
+    return chr($L + $offset) if $L < 56;
 
     if ($L < 256**8) {
         my $BL = $self->to_binary($L);
