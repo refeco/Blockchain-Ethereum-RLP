@@ -1,4 +1,4 @@
-# perl RLP
+# perl-RLP
 
  Recursive Length Prefix (RLP) utility for encoding and decoding ethereum based transaction parameters
 

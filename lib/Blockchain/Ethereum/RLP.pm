@@ -9,7 +9,7 @@ use Carp;
 
 use constant {
     STRING => 'str',
-    LIST => 'list'
+    LIST   => 'list'
 };
 
 sub new {
@@ -43,13 +43,13 @@ sub encode {
 }
 
 sub _encode_length {
-    my ($self, $L, $offset) = @_;
+    my ($self, $l, $offset) = @_;
 
-    return chr($L + $offset) if $L < 56;
+    return chr($l + $offset) if $l < 56;
 
-    if ($L < 256**8) {
-        my $BL = $self->_to_binary($L);
-        return chr(length($BL) + $offset + 55) . $BL;
+    if ($l < 256**8) {
+        my $bl = $self->_to_binary($l);
+        return chr(length($bl) + $offset + 55) . $bl;
     } else {
         croak "Input too long";
     }
@@ -61,27 +61,28 @@ sub _to_binary {
     return $self->_to_binary(int($x / 256)) . chr($x % 256);
 }
 
-
 sub decode {
     my ($self, $input) = @_;
 
-    if (length($input) == 0) {
-        return [];
-    }
+    return [] unless length $input;
 
     my @output;
-    my ($offset, $dataLen, $type) = $self->_decode_length($input);
+    my ($offset, $data_length, $type) = $self->_decode_length($input);
 
     if ($type eq 'str') {
-        my $hex = unpack( "H*", substr($input, $offset, $dataLen));
+        my $hex = unpack("H*", substr($input, $offset, $data_length));
+        # same as for the encoding we do expect an prefixed 0 for
+        # odd length hexadecimal values, this just removes the 0 prefix.
         $hex =~ s/^0+//g;
-        push @output, '0x'. $hex;
+        push @output, '0x' . $hex;
     } elsif ($type eq 'list') {
-        push @output, @{$self->_instantiate_list(substr($input, $offset, $dataLen))};
+        push @output, @{$self->decode(substr($input, $offset, $data_length))};
     }
 
-    push @output, @{$self->decode(substr($input, $offset + $dataLen))};
+    push @output, @{$self->decode(substr($input, $offset + $data_length))};
 
+    # array reference is returned for both cases, in case of an string value
+    # just use the first element of the array.
     return \@output;
 }
 
@@ -89,57 +90,54 @@ sub _decode_length {
     my ($self, $input) = @_;
 
     my $length = length($input);
-    if ($length == 0) {
-        die "Input is null";
-    }
+    croak "Invalid empty input" unless $length;
 
     my $prefix = ord(substr($input, 0, 1));
 
     if ($prefix <= 0x7f) {
+        # single byte
         return (0, 1, 'str');
     } elsif ($prefix <= 0xb7 && $length > $prefix - 0x80) {
-        my $strLen = $prefix - 0x80;
-        return (1, $strLen, 'str');
+        # short string
+        my $str_length = $prefix - 0x80;
+        return (1, $str_length, 'str');
     } elsif ($prefix <= 0xbf && $length > $prefix - 0xb7 && $length > $prefix - 0xb7 + $self->_to_integer(substr($input, 1, $prefix - 0xb7))) {
-        my $lenOfStrLen = $prefix - 0xb7;
-        my $strLen      = $self->_to_integer(substr($input, 1, $lenOfStrLen));
-        return (1 + $lenOfStrLen, $strLen, 'str');
+        # long string
+        my $str_prefix_length = $prefix - 0xb7;
+        my $str_length        = $self->_to_integer(substr($input, 1, $str_prefix_length));
+        return (1 + $str_prefix_length, $str_length, 'str');
     } elsif ($prefix <= 0xf7 && $length > $prefix - 0xc0) {
-        my $listLen = $prefix - 0xc0;
-        return (1, $listLen, 'list');
+        # list
+        my $list_length = $prefix - 0xc0;
+        return (1, $list_length, 'list');
     } elsif ($prefix <= 0xff && $length > $prefix - 0xf7 && $length > $prefix - 0xf7 + $self->_to_integer(substr($input, 1, $prefix - 0xf7))) {
-        my $lenOfListLen = $prefix - 0xf7;
-        my $listLen      = $self->_to_integer(substr($input, 1, $lenOfListLen));
-        return (1 + $lenOfListLen, $listLen, 'list');
+        # long list
+        my $list_prefix_length = $prefix - 0xf7;
+        my $list_length        = $self->_to_integer(substr($input, 1, $list_prefix_length));
+        return (1 + $list_prefix_length, $list_length, 'list');
     }
 
-    die "Input does not conform to RLP encoding form";
+    croak "Invalid RLP input";
 }
 
 sub _to_integer {
     my ($self, $b) = @_;
 
     my $length = length($b);
-    if ($length == 0) {
-        die "Input is null";
-    } elsif ($length == 1) {
-        return ord($b);
-    }
+    croak "Invalid empty input" unless $length;
+
+    return ord($b) if $length == 1;
 
     return ord(substr($b, -1)) + $self->_to_integer(substr($b, 0, -1)) * 256;
 }
 
-sub _instantiate_list {
-    my ($self, $list) = @_;
+1;
 
-    my $rlp_decoded = $self->decode($list);
-    my @decoded_values;
-    foreach my $item (@$rlp_decoded) {
-        push @decoded_values, $item;
-    }
+__END__
 
-    return \@decoded_values;
-}
+=pod
+
+=encoding UTF-8
 
 =head1 NAME
 
@@ -147,44 +145,54 @@ Blockchain::Ethereum::RLP - The great new Blockchain::Ethereum::RLP!
 
 =head1 VERSION
 
-Version 0.01
+Version 0.001
 
 =cut
 
-our $VERSION = '0.01';
-
+our $VERSION = '0.001';
 
 =head1 SYNOPSIS
 
-Quick summary of what the module does.
+Allow RLP encoding and decoding
 
-Perhaps a little code snippet.
+This class is basically an transcribed version of the RLP encode/decode sample given at L<https://ethereum.org/en/developers/docs/data-structures-and-encoding/rlp/>
 
-    use Blockchain::Ethereum::RLP;
+    my $rlp = Blockchain::Ethereum::RLP->new();
 
-    my $foo = Blockchain::Ethereum::RLP->new();
+    my $tx_params  = ['0x9', '0x4a817c800', '0x5208', '0x3535353535353535353535353535353535353535', '0xde0b6b3a7640000', '0x', '0x1', '0x', '0x'];
+    my $encoded = $rlp->encode($params); #ec098504a817c800825208943535353535353535353535353535353535353535880de0b6b3a764000080018080
+
+    my $encoded_tx_params = 'ec098504a817c800825208943535353535353535353535353535353535353535880de0b6b3a764000080018080';
+    my $decoded = $rlp->decode(pack "H*", $encoded_tx_params); #['0x9', '0x4a817c800', '0x5208', '0x3535353535353535353535353535353535353535', '0xde0b6b3a7640000', '0x', '0x1', '0x', '0x']
     ...
 
-=head1 EXPORT
+=head1 METHODS
 
-A list of functions that can be exported.  You can delete this section
-if you don't export anything, such as for a purely object-oriented module.
+=head2 encode
 
-=head1 SUBROUTINES/METHODS
+Encodes the given input to RLP
 
-=head2 function1
+=over 4 
 
-=cut
+=item * C<$input> hexadecimal string or reference to an hexadecimal string array
 
-sub function1 {
-}
+=back
 
-=head2 function2
+Return the encoded bytes
 
 =cut
 
-sub function2 {
-}
+=head2 decode
+
+=over 4 
+
+=item * C<$input> RLP encoded bytes
+
+=back
+
+Returns an hexadecimal array reference
+
+=cut
 
 =head1 AUTHOR
 
@@ -192,12 +200,7 @@ Reginaldo Costa, C<< <refeco at cpan.org> >>
 
 =head1 BUGS
 
-Please report any bugs or feature requests to C<bug-blockchain-ethereum-rlp at rt.cpan.org>, or through
-the web interface at L<https://rt.cpan.org/NoAuth/ReportBug.html?Queue=Blockchain-Ethereum-RLP>.  I will be notified, and then you'll
-automatically be notified of progress on your bug as I make changes.
-
-
-
+Please report any bugs or feature requests to L<https://github.com/refeco/perl-RPL>
 
 =head1 SUPPORT
 
@@ -205,38 +208,12 @@ You can find documentation for this module with the perldoc command.
 
     perldoc Blockchain::Ethereum::RLP
 
-
-You can also look for information at:
-
-=over 4
-
-=item * RT: CPAN's request tracker (report bugs here)
-
-L<https://rt.cpan.org/NoAuth/Bugs.html?Dist=Blockchain-Ethereum-RLP>
-
-=item * CPAN Ratings
-
-L<https://cpanratings.perl.org/d/Blockchain-Ethereum-RLP>
-
-=item * Search CPAN
-
-L<https://metacpan.org/release/Blockchain-Ethereum-RLP>
-
-=back
-
-
-=head1 ACKNOWLEDGEMENTS
-
-
 =head1 LICENSE AND COPYRIGHT
 
-This software is Copyright (c) 2023 by Reginaldo Costa.
+This software is Copyright (c) 2022 by REFECO.
 
 This is free software, licensed under:
 
-  The Artistic License 2.0 (GPL Compatible)
-
+  The MIT License
 
 =cut
-
-1; # End of Blockchain::Ethereum::RLP
