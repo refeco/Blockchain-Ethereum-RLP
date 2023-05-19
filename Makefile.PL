@@ -1,4 +1,4 @@
-use 5.006;
+use v5.26;
 use strict;
 use warnings;
 use ExtUtils::MakeMaker;
@@ -8,8 +8,18 @@ my %WriteMakefileArgs = (
     AUTHOR           => q{Reginaldo Costa <refeco@cpan.org>},
     VERSION_FROM     => 'lib/Blockchain/Ethereum/RLP.pm',
     ABSTRACT_FROM    => 'lib/Blockchain/Ethereum/RLP.pm',
-    LICENSE          => 'artistic_2',
-    MIN_PERL_VERSION => '5.006',
+    LICENSE          => 'mit',
+    MIN_PERL_VERSION => 'v5.26',
+    META_MERGE       => {
+        'meta-spec' => {version => 2},
+        resources   => {
+            repository => {
+                type => 'git',
+                url  => 'https://github.com/refeco/perl-RLP.git',
+                web  => 'https://github.com/refeco/perl-RLP',
+            },
+        },
+    },
     CONFIGURE_REQUIRES => {
         'ExtUtils::MakeMaker' => '0',
     },
@@ -17,8 +27,8 @@ my %WriteMakefileArgs = (
         'Test::More' => '0',
     },
     PREREQ_PM => {
-        #'ABC'              => '1.6',
-        #'Foo::Bar::Module' => '5.0401',
+        'Carp'           => '1.50',
+        'indirect'       => '0.39',
     },
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'Blockchain-Ethereum-RLP-*' },
