@@ -157,7 +157,7 @@ our $VERSION = '0.001';
 
 Allow RLP encoding and decoding
 
-This class is basically an transcribed version of the RLP encode/decode sample given at L<https://ethereum.org/en/developers/docs/data-structures-and-encoding/rlp/>
+This class is basically an transpilation of the RLP encode/decode python sample given at L<https://ethereum.org/en/developers/docs/data-structures-and-encoding/rlp/>
 
     my $rlp = Blockchain::Ethereum::RLP->new();
 
