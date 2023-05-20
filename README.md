@@ -2,7 +2,7 @@
 
 Recursive Length Prefix (RLP) utility for encoding and decoding ethereum based transaction parameters
 
-This is an Transpilation from the python code (with some small changes) at [ethereum.org](https://ethereum.org/en/developers/docs/data-structures-and-encoding/rlp/) to Perl.
+This is an transpilation from the python code (with some small changes) at [ethereum.org](https://ethereum.org/en/developers/docs/data-structures-and-encoding/rlp/) to Perl.
 
 # Table of contents
 
