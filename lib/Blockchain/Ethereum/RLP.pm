@@ -38,8 +38,10 @@ sub encode {
 
     $input = pack("H*", $input);
 
-    return $input if length $input == 1 && ord $input < 0x80;
-    return $self->_encode_length(length($input), 0x80) . $input;
+    my $input_length = length $input;
+
+    return $input if $input_length == 1 && ord $input < 0x80;
+    return $self->_encode_length($input_length, 0x80) . $input;
 }
 
 sub _encode_length {
@@ -73,7 +75,7 @@ sub decode {
         my $hex = unpack("H*", substr($input, $offset, $data_length));
         # same as for the encoding we do expect an prefixed 0 for
         # odd length hexadecimal values, this just removes the 0 prefix.
-        $hex =~ s/^0+//g;
+        $hex = substr($hex, 1) if $hex =~ /^0/ && (length($hex) - 1) % 2 != 0;
         push @output, '0x' . $hex;
     } elsif ($type eq 'list') {
         push @output, @{$self->decode(substr($input, $offset, $data_length))};
