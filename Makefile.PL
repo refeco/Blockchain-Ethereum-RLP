@@ -27,8 +27,7 @@ my %WriteMakefileArgs = (
         'Test::More' => '0',
     },
     PREREQ_PM => {
-        'Carp'     => '1.50',
-        'indirect' => '0.39',
+        'Carp'     => '1.50'
     },
     dist => {
         COMPRESS => 'gzip -9f',
