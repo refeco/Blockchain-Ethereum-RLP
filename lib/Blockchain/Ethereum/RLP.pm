@@ -51,9 +51,9 @@ sub _encode_length {
     if ($l < 256**8) {
         my $bl = $self->_to_binary($l);
         return chr(length($bl) + $offset + 55) . $bl;
-    } else {
-        croak "Input too long";
     }
+
+    croak "Input too long";
 }
 
 sub _to_binary {
@@ -70,13 +70,13 @@ sub decode {
     my @output;
     my ($offset, $data_length, $type) = $self->_decode_length($input);
 
-    if ($type eq 'str') {
+    if ($type eq STRING) {
         my $hex = unpack("H*", substr($input, $offset, $data_length));
         # same as for the encoding we do expect an prefixed 0 for
         # odd length hexadecimal values, this just removes the 0 prefix.
         $hex = substr($hex, 1) if $hex =~ /^0/ && (length($hex) - 1) % 2 != 0;
         push @output, '0x' . $hex;
-    } elsif ($type eq 'list') {
+    } elsif ($type eq LIST) {
         push @output, @{$self->decode(substr($input, $offset, $data_length))};
     }
 
@@ -97,25 +97,25 @@ sub _decode_length {
 
     if ($prefix <= 0x7f) {
         # single byte
-        return (0, 1, 'str');
+        return (0, 1, STRING);
     } elsif ($prefix <= 0xb7 && $length > $prefix - 0x80) {
         # short string
         my $str_length = $prefix - 0x80;
-        return (1, $str_length, 'str');
+        return (1, $str_length, STRING);
     } elsif ($prefix <= 0xbf && $length > $prefix - 0xb7 && $length > $prefix - 0xb7 + $self->_to_integer(substr($input, 1, $prefix - 0xb7))) {
         # long string
         my $str_prefix_length = $prefix - 0xb7;
         my $str_length        = $self->_to_integer(substr($input, 1, $str_prefix_length));
-        return (1 + $str_prefix_length, $str_length, 'str');
+        return (1 + $str_prefix_length, $str_length, STRING);
     } elsif ($prefix <= 0xf7 && $length > $prefix - 0xc0) {
         # list
         my $list_length = $prefix - 0xc0;
-        return (1, $list_length, 'list');
+        return (1, $list_length, LIST);
     } elsif ($prefix <= 0xff && $length > $prefix - 0xf7 && $length > $prefix - 0xf7 + $self->_to_integer(substr($input, 1, $prefix - 0xf7))) {
         # long list
         my $list_prefix_length = $prefix - 0xf7;
         my $list_length        = $self->_to_integer(substr($input, 1, $list_prefix_length));
-        return (1 + $list_prefix_length, $list_length, 'list');
+        return (1 + $list_prefix_length, $list_length, LIST);
     }
 
     croak "Invalid RLP input";
@@ -142,7 +142,7 @@ __END__
 
 =head1 NAME
 
-Blockchain::Ethereum::RLP - The great new Blockchain::Ethereum::RLP!
+Blockchain::Ethereum::RLP - Ethereum RLP encoding/decoding utility
 
 =head1 VERSION
 
