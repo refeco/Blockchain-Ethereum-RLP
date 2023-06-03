@@ -35,12 +35,12 @@ sub encode {
     if ($input eq '0' || $input eq '' || $input eq '0x') {
         $input = chr(0x80);
         return $input;
-    } else {
-        # pack will add a null character at the end if the length is odd
-        # RLP expects this to be added at the left instead.
-        $input = "0$input" if length($input) % 2 != 0;
-        $input = pack("H*", $input);
     }
+
+    # pack will add a null character at the end if the length is odd
+    # RLP expects this to be added at the left instead.
+    $input = "0$input" if length($input) % 2 != 0;
+    $input = pack("H*", $input);
 
     my $input_length = length $input;
 
