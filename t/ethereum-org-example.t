@@ -49,12 +49,13 @@ subtest "ethereum org example encode" => sub {
     $decoded = $rlp->decode($encoded);
     is_deeply $decoded, ['0x'], "correct decoding for empty array empty = integer 0";
 
-    $encoded  = $rlp->encode(sprintf("0x%x", 0));
-    $expected = '00';
+    $encoded = $rlp->encode('0x0');
+    # 0 is set as null
+    $expected = '80';
     is(unpack("H*", $encoded), $expected, "correct encoding for hexadecimal integer 0");
 
     $decoded = $rlp->decode($encoded);
-    is_deeply $decoded, [sprintf("0x%x", 0)], "correct decoding for hexadecimal integer 0";
+    is_deeply $decoded, ['0x'], "correct decoding for hexadecimal integer 0";
 
     $encoded  = $rlp->encode(sprintf("0x%x", 15));
     $expected = '0f';

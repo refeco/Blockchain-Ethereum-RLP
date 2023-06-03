@@ -26,30 +26,35 @@ sub encode {
         my $output = '';
         $output .= $self->encode($_) for $input->@*;
 
-        return $self->_encode_length(length($output), 0xc0) . $output;
+        return $self->_encode_length(length($output), 192) . $output;
     }
 
     $input =~ s/^0x//g;
 
-    # pack will add a null character at the end if the length is odd
-    # RLP expects this to be added at the left instead.
-    $input = "0$input" if length($input) % 2 != 0;
-
-    $input = pack("H*", $input);
+    # zero will be considered empty as per RLP specification
+    if ($input eq '0' || $input eq '' || $input eq '0x') {
+        $input = chr(0x80);
+        return $input;
+    } else {
+        # pack will add a null character at the end if the length is odd
+        # RLP expects this to be added at the left instead.
+        $input = "0$input" if length($input) % 2 != 0;
+        $input = pack("H*", $input);
+    }
 
     my $input_length = length $input;
 
-    return $input if $input_length == 1 && ord $input < 0x80;
-    return $self->_encode_length($input_length, 0x80) . $input;
+    return $input if $input_length == 1 && ord $input <= 127;
+    return $self->_encode_length($input_length, 128) . $input;
 }
 
 sub _encode_length {
-    my ($self, $l, $offset) = @_;
+    my ($self, $length, $offset) = @_;
 
-    return chr($l + $offset) if $l < 56;
+    return chr($length + $offset) if $length <= 55;
 
-    if ($l < 256**8) {
-        my $bl = $self->_to_binary($l);
+    if ($length < 256**8) {
+        my $bl = $self->_to_binary($length);
         return chr(length($bl) + $offset + 55) . $bl;
     }
 
@@ -95,25 +100,25 @@ sub _decode_length {
 
     my $prefix = ord(substr($input, 0, 1));
 
-    if ($prefix <= 0x7f) {
+    if ($prefix <= 127) {
         # single byte
         return (0, 1, STRING);
-    } elsif ($prefix <= 0xb7 && $length > $prefix - 0x80) {
+    } elsif ($prefix <= 183 && $length > $prefix - 128) {
         # short string
-        my $str_length = $prefix - 0x80;
+        my $str_length = $prefix - 128;
         return (1, $str_length, STRING);
-    } elsif ($prefix <= 0xbf && $length > $prefix - 0xb7 && $length > $prefix - 0xb7 + $self->_to_integer(substr($input, 1, $prefix - 0xb7))) {
+    } elsif ($prefix <= 191 && $length > $prefix - 183 && $length > $prefix - 183 + $self->_to_integer(substr($input, 1, $prefix - 183))) {
         # long string
-        my $str_prefix_length = $prefix - 0xb7;
+        my $str_prefix_length = $prefix - 183;
         my $str_length        = $self->_to_integer(substr($input, 1, $str_prefix_length));
         return (1 + $str_prefix_length, $str_length, STRING);
-    } elsif ($prefix <= 0xf7 && $length > $prefix - 0xc0) {
+    } elsif ($prefix <= 247 && $length > $prefix - 192) {
         # list
-        my $list_length = $prefix - 0xc0;
+        my $list_length = $prefix - 192;
         return (1, $list_length, LIST);
-    } elsif ($prefix <= 0xff && $length > $prefix - 0xf7 && $length > $prefix - 0xf7 + $self->_to_integer(substr($input, 1, $prefix - 0xf7))) {
+    } elsif ($prefix <= 255 && $length > $prefix - 247 && $length > $prefix - 247 + $self->_to_integer(substr($input, 1, $prefix - 247))) {
         # long list
-        my $list_prefix_length = $prefix - 0xf7;
+        my $list_prefix_length = $prefix - 247;
         my $list_length        = $self->_to_integer(substr($input, 1, $list_prefix_length));
         return (1 + $list_prefix_length, $list_length, LIST);
     }
@@ -172,6 +177,8 @@ This class is basically an transpilation of the RLP encode/decode python sample 
 =head2 encode
 
 Encodes the given input to RLP
+
+This module accepts only hexadecimal encoded values as individual parameters or items of the array reference
 
 =over 4 
 
