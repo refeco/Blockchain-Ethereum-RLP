@@ -72,7 +72,6 @@ sub decode {
 
     return [] unless length $input;
 
-    my @output;
     my ($offset, $data_length, $type) = $self->_decode_length($input);
 
     if ($type eq STRING) {
@@ -80,15 +79,20 @@ sub decode {
         # same as for the encoding we do expect an prefixed 0 for
         # odd length hexadecimal values, this just removes the 0 prefix.
         $hex = substr($hex, 1) if $hex =~ /^0/ && (length($hex) - 1) % 2 != 0;
-        push @output, '0x' . $hex;
-    } elsif ($type eq LIST) {
-        push @output, @{$self->decode(substr($input, $offset, $data_length))};
+        return '0x' . $hex;
     }
 
-    push @output, @{$self->decode(substr($input, $offset + $data_length))};
+    my @output;
+    my $list_data   = substr($input, $offset, $data_length);
+    my $list_offset = 0;
+    # recursive arrays
+    while ($list_offset < length($list_data)) {
+        my ($item_offset, $item_length, $item_type) = $self->_decode_length(substr($list_data, $list_offset));
+        my $list_item = $self->decode(substr($list_data, $list_offset, $item_offset + $item_length));
+        push @output, $list_item;
+        $list_offset += $item_offset + $item_length;
+    }
 
-    # array reference is returned for both cases, in case of an string value
-    # just use the first element of the array.
     return \@output;
 }
 
@@ -151,17 +155,15 @@ Blockchain::Ethereum::RLP - Ethereum RLP encoding/decoding utility
 
 =head1 VERSION
 
-Version 0.002
+Version 0.003
 
 =cut
 
-our $VERSION = '0.002';
+our $VERSION = '0.003';
 
 =head1 SYNOPSIS
 
 Allow RLP encoding and decoding
-
-This class is basically an transpilation of the RLP encode/decode python sample given at L<https://ethereum.org/en/developers/docs/data-structures-and-encoding/rlp/>
 
     my $rlp = Blockchain::Ethereum::RLP->new();
 
@@ -178,9 +180,11 @@ This class is basically an transpilation of the RLP encode/decode python sample 
 
 Encodes the given input to RLP
 
-This module accepts only hexadecimal encoded values as individual parameters or items of the array reference
+Usage:
 
-=over 4 
+    encode(hex string /  hex array reference) ->  encoded bytes
+
+=over 4
 
 =item * C<$input> hexadecimal string or reference to an hexadecimal string array
 
@@ -192,13 +196,19 @@ Return the encoded bytes
 
 =head2 decode
 
-=over 4 
+Decode the given input from RLP to the specific return type
+
+Usage:
+
+    decode(RLP encoded bytes) -> hexadecimal string / array reference
+
+=over 4
 
 =item * C<$input> RLP encoded bytes
 
 =back
 
-Returns an hexadecimal array reference
+Returns an hexadecimals string or an array reference in case of multiple items
 
 =cut
 

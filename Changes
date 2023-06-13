@@ -1,6 +1,8 @@
 Revision history for Blockchain-Contract-Solidity-ABI
-0.001 2023-05-18
-    - initial release
+0.003
+    - Fix empty list decoding
+    - Fix recursive list decoding
 0.002 2023-06-03
     - Fix zero and odd encoding
-
+0.001 2023-05-18
+    - initial release
