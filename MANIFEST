@@ -2,6 +2,7 @@
 .perltidyrc
 .tidyallrc
 Changes
+cpanfile
 lib/Blockchain/Ethereum/RLP.pm
 LICENSE
 Makefile.PL
@@ -9,6 +10,7 @@ MANIFEST			This list of files
 README.md
 t/eip-155-example.t
 t/ethereum-org-example.t
+t/etherscan_raw_txs.t
 xt/perl-critic.t
 xt/perl-pod.t
 xt/perl-tidy.t
