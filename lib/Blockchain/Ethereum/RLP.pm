@@ -228,7 +228,7 @@ You can find documentation for this module with the perldoc command.
 
 =head1 LICENSE AND COPYRIGHT
 
-This software is Copyright (c) 2022 by REFECO.
+This software is Copyright (c) 2023 by REFECO.
 
 This is free software, licensed under:
 
