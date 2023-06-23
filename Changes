@@ -1,4 +1,9 @@
-Revision history for Blockchain-Contract-Solidity-ABI
+Revision history for Blockchain-Ethereum-RLP
+0.004
+    - Add standalone script
+    - Remove cpanfile
+    - Remove tidy backup and cache
+    - Fix license year
 0.003
     - Fix empty list decoding
     - Fix recursive list decoding
