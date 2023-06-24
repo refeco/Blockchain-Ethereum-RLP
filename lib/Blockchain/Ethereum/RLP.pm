@@ -137,10 +137,6 @@ sub _to_integer {
     return ord(substr($b, -1)) + $self->_to_integer(substr($b, 0, -1)) * 256;
 }
 
-1;
-
-__END__
-
 =pod
 
 =encoding UTF-8
@@ -151,11 +147,11 @@ Blockchain::Ethereum::RLP - Ethereum RLP encoding/decoding utility
 
 =head1 VERSION
 
-Version 0.003
+Version 0.004
 
 =cut
 
-our $VERSION = '0.003';
+our $VERSION = '0.004';
 
 =head1 SYNOPSIS
 
@@ -231,3 +227,5 @@ This is free software, licensed under:
   The MIT License
 
 =cut
+
+1;
