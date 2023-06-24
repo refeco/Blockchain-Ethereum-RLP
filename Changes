@@ -1,9 +1,7 @@
 Revision history for Blockchain-Ethereum-RLP
 0.004
     - Add standalone script
-    - Remove cpanfile
-    - Remove tidy backup and cache
-    - Fix license year
+    - Fix minor documentation bugs
 0.003
     - Fix empty list decoding
     - Fix recursive list decoding
