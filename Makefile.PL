@@ -10,6 +10,7 @@ my %WriteMakefileArgs = (
     ABSTRACT_FROM    => 'lib/Blockchain/Ethereum/RLP.pm',
     LICENSE          => 'mit',
     MIN_PERL_VERSION => 'v5.26',
+    EXE_FILES        => ["bin/rlp"],
     META_MERGE       => {
         'meta-spec' => {version => 2},
         resources   => {
@@ -26,8 +27,12 @@ my %WriteMakefileArgs = (
     TEST_REQUIRES => {
         'Test::More' => '0',
     },
-    PREREQ_PM => {'Carp' => '1.50'},
-    dist      => {
+    PREREQ_PM => {
+        'Carp'         => '1.50',
+        "Getopt::Long" => 0,
+        "Pod::Usage"   => "1.21",
+    },
+    dist => {
         COMPRESS => 'gzip -9f',
         SUFFIX   => 'gz',
     },

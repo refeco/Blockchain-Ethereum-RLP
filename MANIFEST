@@ -1,8 +1,8 @@
 .perlcriticrc
 .perltidyrc
 .tidyallrc
+bin/rlp
 Changes
-cpanfile
 lib/Blockchain/Ethereum/RLP.pm
 LICENSE
 Makefile.PL
