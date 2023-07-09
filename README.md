@@ -63,7 +63,7 @@ You can also look for information at:
 
 # License and Copyright
 
-This software is Copyright (c) 2022 by REFECO.
+This software is Copyright (c) 2023 by REFECO.
 
 This is free software, licensed under:
 

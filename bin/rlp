@@ -58,10 +58,12 @@ pod2usage(1) unless $action && $ref;
 my $rlp = Blockchain::Ethereum::RLP->new;
 
 sub decode {
+
     printf("%s\n", join(", ", $rlp->decode(pack "H*", shift @ARGV)->@*));
 }
 
 sub encode {
+
     printf("%s\n", unpack "H*", $rlp->encode(\@ARGV));
 }
 

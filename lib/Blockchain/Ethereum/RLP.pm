@@ -3,20 +3,24 @@ package Blockchain::Ethereum::RLP;
 use v5.26;
 use strict;
 use warnings;
+use feature 'signatures';
+no indirect ':fatal';
 
 use Carp;
 
 use constant {
-    STRING => 'str',
-    LIST   => 'list'
+    STRING => 'string',
+    LIST   => 'list',
 };
 
-sub new {
-    return bless {}, shift;
+sub new ($class) {
+
+    return bless {}, $class;
 }
 
-sub encode {
-    my ($self, $input) = @_;
+sub encode ($self, $input) {
+
+    croak 'No input given' unless defined $input;
 
     if (ref $input eq 'ARRAY') {
         my $output = '';
@@ -44,8 +48,7 @@ sub encode {
     return $self->_encode_length($input_length, 128) . $input;
 }
 
-sub _encode_length {
-    my ($self, $length, $offset) = @_;
+sub _encode_length ($self, $length, $offset) {
 
     return chr($length + $offset) if $length <= 55;
 
@@ -57,19 +60,19 @@ sub _encode_length {
     croak "Input too long";
 }
 
-sub _to_binary {
-    my ($self, $x) = @_;
-    return '' if $x == 0;
+sub _to_binary ($self, $x) {
+
+    return '' unless $x;
     return $self->_to_binary(int($x / 256)) . chr($x % 256);
 }
 
-sub decode {
-    my ($self, $input) = @_;
+sub decode ($self, $input) {
 
     return [] unless length $input;
 
     my ($offset, $data_length, $type) = $self->_decode_length($input);
 
+    # string
     if ($type eq STRING) {
         my $hex = unpack("H*", substr($input, $offset, $data_length));
         # same as for the encoding we do expect an prefixed 0 for
@@ -78,6 +81,7 @@ sub decode {
         return '0x' . $hex;
     }
 
+    # list
     my @output;
     my $list_data   = substr($input, $offset, $data_length);
     my $list_offset = 0;
@@ -92,42 +96,47 @@ sub decode {
     return \@output;
 }
 
-sub _decode_length {
-    my ($self, $input) = @_;
+sub _decode_length ($self, $input) {
 
     my $length = length($input);
     croak "Invalid empty input" unless $length;
 
     my $prefix = ord(substr($input, 0, 1));
 
+    my $short_string = $prefix - 128;
+    my $long_string  = $prefix - 183;
+    my $list         = $prefix - 192;
+    my $long_list    = $prefix - 247;
+
     if ($prefix <= 127) {
         # single byte
         return (0, 1, STRING);
-    } elsif ($prefix <= 183 && $length > $prefix - 128) {
+    } elsif ($prefix <= 183 && $length > $short_string) {
         # short string
-        my $str_length = $prefix - 128;
-        return (1, $str_length, STRING);
-    } elsif ($prefix <= 191 && $length > $prefix - 183 && $length > $prefix - 183 + $self->_to_integer(substr($input, 1, $prefix - 183))) {
+        return (1, $short_string, STRING);
+    } elsif ($prefix <= 191
+        && $length > $long_string
+        && $length > $long_string + $self->_to_integer(substr($input, 1, $long_string)))
+    {
         # long string
-        my $str_prefix_length = $prefix - 183;
-        my $str_length        = $self->_to_integer(substr($input, 1, $str_prefix_length));
-        return (1 + $str_prefix_length, $str_length, STRING);
-    } elsif ($prefix <= 247 && $length > $prefix - 192) {
+        my $str_length = $self->_to_integer(substr($input, 1, $long_string));
+        return (1 + $long_string, $str_length, STRING);
+    } elsif ($prefix <= 247 && $length > $list) {
         # list
-        my $list_length = $prefix - 192;
-        return (1, $list_length, LIST);
-    } elsif ($prefix <= 255 && $length > $prefix - 247 && $length > $prefix - 247 + $self->_to_integer(substr($input, 1, $prefix - 247))) {
+        return (1, $list, LIST);
+    } elsif ($prefix <= 255
+        && $length > $long_list
+        && $length > $long_list + $self->_to_integer(substr($input, 1, $long_list)))
+    {
         # long list
-        my $list_prefix_length = $prefix - 247;
-        my $list_length        = $self->_to_integer(substr($input, 1, $list_prefix_length));
-        return (1 + $list_prefix_length, $list_length, LIST);
+        my $list_length = $self->_to_integer(substr($input, 1, $long_list));
+        return (1 + $long_list, $list_length, LIST);
     }
 
     croak "Invalid RLP input";
 }
 
-sub _to_integer {
-    my ($self, $b) = @_;
+sub _to_integer ($self, $b) {
 
     my $length = length($b);
     croak "Invalid empty input" unless $length;
@@ -147,11 +156,11 @@ Blockchain::Ethereum::RLP - Ethereum RLP encoding/decoding utility
 
 =head1 VERSION
 
-Version 0.004
+Version 0.005
 
 =cut
 
-our $VERSION = '0.004';
+our $VERSION = '0.005';
 
 =head1 SYNOPSIS
 
@@ -206,7 +215,7 @@ Returns an hexadecimals string or an array reference in case of multiple items
 
 =head1 AUTHOR
 
-Reginaldo Costa, C<< <refeco at cpan.org> >>
+REFECO, C<< <refeco at cpan.org> >>
 
 =head1 BUGS
 
