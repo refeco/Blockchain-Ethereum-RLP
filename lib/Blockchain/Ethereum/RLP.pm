@@ -29,7 +29,7 @@ class Blockchain::Ethereum::RLP {
         my $hex = $input =~ s/^0x//r;
 
         # zero will be considered empty as per RLP specification
-        if ($hex eq '0' || $hex eq '' || $hex eq '0x') {
+        if ($hex eq '0' || $hex eq '') {
             $hex = chr(0x80);
             return $hex;
         }
