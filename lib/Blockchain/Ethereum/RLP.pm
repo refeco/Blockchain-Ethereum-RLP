@@ -26,23 +26,23 @@ class Blockchain::Ethereum::RLP {
             return $self->_encode_length(length($output), LONG_STRING_MAX_LENGTH) . $output;
         }
 
-        $input =~ s/^0x//g;
+        my $hex = $input =~ s/^0x//r;
 
         # zero will be considered empty as per RLP specification
-        if ($input eq '0' || $input eq '' || $input eq '0x') {
-            $input = chr(0x80);
-            return $input;
+        if ($hex eq '0' || $hex eq '' || $hex eq '0x') {
+            $hex = chr(0x80);
+            return $hex;
         }
 
         # pack will add a null character at the end if the length is odd
         # RLP expects this to be added at the left instead.
-        $input = "0$input" if length($input) % 2 != 0;
-        $input = pack("H*", $input);
+        $hex = "0$hex" if length($hex) % 2 != 0;
+        $hex = pack("H*", $hex);
 
-        my $input_length = length $input;
+        my $input_length = length $hex;
 
-        return $input if $input_length == 1 && ord $input < SINGLE_BYTE_MAX_LENGTH;
-        return $self->_encode_length($input_length, SINGLE_BYTE_MAX_LENGTH) . $input;
+        return $hex if $input_length == 1 && ord $hex < SINGLE_BYTE_MAX_LENGTH;
+        return $self->_encode_length($input_length, SINGLE_BYTE_MAX_LENGTH) . $hex;
     }
 
     method _encode_length ($length, $offset) {

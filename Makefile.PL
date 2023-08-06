@@ -5,7 +5,7 @@ use ExtUtils::MakeMaker;
 
 my %WriteMakefileArgs = (
     NAME             => 'Blockchain::Ethereum::RLP',
-    AUTHOR           => q{REFECO <refeco@cpan.org>},
+    AUTHOR           => q{Reginaldo Costa <refeco@cpan.org>},
     VERSION_FROM     => 'lib/Blockchain/Ethereum/RLP.pm',
     ABSTRACT_FROM    => 'lib/Blockchain/Ethereum/RLP.pm',
     LICENSE          => 'mit',
