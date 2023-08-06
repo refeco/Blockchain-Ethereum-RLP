@@ -24,15 +24,9 @@ my %WriteMakefileArgs = (
     CONFIGURE_REQUIRES => {
         'ExtUtils::MakeMaker' => '7.70',
     },
-    TEST_REQUIRES => {
-        'Test::More' => '1.302192',
-    },
-    PREREQ_PM => {
-        'Carp'         => '1.50',
-        "Getopt::Long" => '2.54',
-        "Pod::Usage"   => "2.03",
-    },
-    dist => {
+    TEST_REQUIRES => {},
+    PREREQ_PM     => {'Object::PAD' => '0.79'},
+    dist          => {
         COMPRESS => 'gzip -9f',
         SUFFIX   => 'gz',
     },

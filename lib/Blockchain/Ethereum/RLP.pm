@@ -1,149 +1,147 @@
-package Blockchain::Ethereum::RLP;
-
 use v5.26;
-use strict;
-use warnings;
-use feature 'signatures';
-no indirect ':fatal';
+use Object::Pad;
 
-use Carp;
+class Blockchain::Ethereum::RLP {
+    use Carp;
+    use constant {
+        STRING                  => 'string',
+        LIST                    => 'list',
+        SINGLE_BYTE_MAX_LENGTH  => 128,
+        SHORT_STRING_MAX_LENGTH => 183,
+        LONG_STRING_MAX_LENGTH  => 192,
+        LIST_MAX_LENGTH         => 247,
+        LONG_LIST_MAX_LENGTH    => 255,
+        BYTE_LENGTH_DELIMITER   => 55,
+        INPUT_LENGTH_DELIMITER  => 256,
+    };
 
-use constant {
-    STRING => 'string',
-    LIST   => 'list',
-};
+    method encode ($input) {
 
-sub new ($class) {
+        croak 'No input given' unless defined $input;
 
-    return bless {}, $class;
-}
+        if (ref $input eq 'ARRAY') {
+            my $output = '';
+            $output .= $self->encode($_) for $input->@*;
 
-sub encode ($self, $input) {
+            return $self->_encode_length(length($output), LONG_STRING_MAX_LENGTH) . $output;
+        }
 
-    croak 'No input given' unless defined $input;
+        $input =~ s/^0x//g;
 
-    if (ref $input eq 'ARRAY') {
-        my $output = '';
-        $output .= $self->encode($_) for $input->@*;
+        # zero will be considered empty as per RLP specification
+        if ($input eq '0' || $input eq '' || $input eq '0x') {
+            $input = chr(0x80);
+            return $input;
+        }
 
-        return $self->_encode_length(length($output), 192) . $output;
+        # pack will add a null character at the end if the length is odd
+        # RLP expects this to be added at the left instead.
+        $input = "0$input" if length($input) % 2 != 0;
+        $input = pack("H*", $input);
+
+        my $input_length = length $input;
+
+        return $input if $input_length == 1 && ord $input < SINGLE_BYTE_MAX_LENGTH;
+        return $self->_encode_length($input_length, SINGLE_BYTE_MAX_LENGTH) . $input;
     }
 
-    $input =~ s/^0x//g;
+    method _encode_length ($length, $offset) {
 
-    # zero will be considered empty as per RLP specification
-    if ($input eq '0' || $input eq '' || $input eq '0x') {
-        $input = chr(0x80);
-        return $input;
+        return chr($length + $offset) if $length <= BYTE_LENGTH_DELIMITER;
+
+        if ($length < INPUT_LENGTH_DELIMITER**8) {
+            my $bl = $self->_to_binary($length);
+            return chr(length($bl) + $offset + BYTE_LENGTH_DELIMITER) . $bl;
+        }
+
+        croak "Input too long";
     }
 
-    # pack will add a null character at the end if the length is odd
-    # RLP expects this to be added at the left instead.
-    $input = "0$input" if length($input) % 2 != 0;
-    $input = pack("H*", $input);
+    method _to_binary ($x) {
 
-    my $input_length = length $input;
-
-    return $input if $input_length == 1 && ord $input <= 127;
-    return $self->_encode_length($input_length, 128) . $input;
-}
-
-sub _encode_length ($self, $length, $offset) {
-
-    return chr($length + $offset) if $length <= 55;
-
-    if ($length < 256**8) {
-        my $bl = $self->_to_binary($length);
-        return chr(length($bl) + $offset + 55) . $bl;
+        return '' unless $x;
+        return $self->_to_binary(int($x / INPUT_LENGTH_DELIMITER)) . chr($x % INPUT_LENGTH_DELIMITER);
     }
 
-    croak "Input too long";
-}
+    method decode ($input) {
 
-sub _to_binary ($self, $x) {
+        return [] unless length $input;
 
-    return '' unless $x;
-    return $self->_to_binary(int($x / 256)) . chr($x % 256);
-}
+        my ($offset, $data_length, $type) = $self->_decode_length($input);
 
-sub decode ($self, $input) {
+        # string
+        if ($type eq STRING) {
+            my $hex = unpack("H*", substr($input, $offset, $data_length));
+            # same as for the encoding we do expect an prefixed 0 for
+            # odd length hexadecimal values, this just removes the 0 prefix.
+            $hex = substr($hex, 1) if $hex =~ /^0/ && (length($hex) - 1) % 2 != 0;
+            return '0x' . $hex;
+        }
 
-    return [] unless length $input;
-
-    my ($offset, $data_length, $type) = $self->_decode_length($input);
-
-    # string
-    if ($type eq STRING) {
-        my $hex = unpack("H*", substr($input, $offset, $data_length));
-        # same as for the encoding we do expect an prefixed 0 for
-        # odd length hexadecimal values, this just removes the 0 prefix.
-        $hex = substr($hex, 1) if $hex =~ /^0/ && (length($hex) - 1) % 2 != 0;
-        return '0x' . $hex;
-    }
-
-    # list
-    my @output;
-    my $list_data   = substr($input, $offset, $data_length);
-    my $list_offset = 0;
-    # recursive arrays
-    while ($list_offset < length($list_data)) {
-        my ($item_offset, $item_length, $item_type) = $self->_decode_length(substr($list_data, $list_offset));
-        my $list_item = $self->decode(substr($list_data, $list_offset, $item_offset + $item_length));
-        push @output, $list_item;
-        $list_offset += $item_offset + $item_length;
-    }
-
-    return \@output;
-}
-
-sub _decode_length ($self, $input) {
-
-    my $length = length($input);
-    croak "Invalid empty input" unless $length;
-
-    my $prefix = ord(substr($input, 0, 1));
-
-    my $short_string = $prefix - 128;
-    my $long_string  = $prefix - 183;
-    my $list         = $prefix - 192;
-    my $long_list    = $prefix - 247;
-
-    if ($prefix <= 127) {
-        # single byte
-        return (0, 1, STRING);
-    } elsif ($prefix <= 183 && $length > $short_string) {
-        # short string
-        return (1, $short_string, STRING);
-    } elsif ($prefix <= 191
-        && $length > $long_string
-        && $length > $long_string + $self->_to_integer(substr($input, 1, $long_string)))
-    {
-        # long string
-        my $str_length = $self->_to_integer(substr($input, 1, $long_string));
-        return (1 + $long_string, $str_length, STRING);
-    } elsif ($prefix <= 247 && $length > $list) {
         # list
-        return (1, $list, LIST);
-    } elsif ($prefix <= 255
-        && $length > $long_list
-        && $length > $long_list + $self->_to_integer(substr($input, 1, $long_list)))
-    {
-        # long list
-        my $list_length = $self->_to_integer(substr($input, 1, $long_list));
-        return (1 + $long_list, $list_length, LIST);
+        my @output;
+        my $list_data   = substr($input, $offset, $data_length);
+        my $list_offset = 0;
+        # recursive arrays
+        while ($list_offset < length($list_data)) {
+            my ($item_offset, $item_length, $item_type) = $self->_decode_length(substr($list_data, $list_offset));
+            my $list_item = $self->decode(substr($list_data, $list_offset, $item_offset + $item_length));
+            push @output, $list_item;
+            $list_offset += $item_offset + $item_length;
+        }
+
+        return \@output;
     }
 
-    croak "Invalid RLP input";
-}
+    method _decode_length ($input) {
 
-sub _to_integer ($self, $b) {
+        my $length = length($input);
+        croak "Invalid empty input" unless $length;
 
-    my $length = length($b);
-    croak "Invalid empty input" unless $length;
+        my $prefix = ord(substr($input, 0, 1));
 
-    return ord($b) if $length == 1;
+        my $short_string = $prefix - SINGLE_BYTE_MAX_LENGTH;
+        my $long_string  = $prefix - SHORT_STRING_MAX_LENGTH;
+        my $list         = $prefix - LONG_STRING_MAX_LENGTH;
+        my $long_list    = $prefix - LIST_MAX_LENGTH;
 
-    return ord(substr($b, -1)) + $self->_to_integer(substr($b, 0, -1)) * 256;
+        if ($prefix < SINGLE_BYTE_MAX_LENGTH) {
+            # single byte
+            return (0, 1, STRING);
+        } elsif ($prefix <= SHORT_STRING_MAX_LENGTH && $length > $short_string) {
+            # short string
+            return (1, $short_string, STRING);
+        } elsif ($prefix <= LONG_STRING_MAX_LENGTH
+            && $length > $long_string
+            && $length > $long_string + $self->_to_integer(substr($input, 1, $long_string)))
+        {
+            # long string
+            my $str_length = $self->_to_integer(substr($input, 1, $long_string));
+            return (1 + $long_string, $str_length, STRING);
+        } elsif ($prefix < LIST_MAX_LENGTH && $length > $list) {
+            # list
+            return (1, $list, LIST);
+        } elsif ($prefix <= LONG_LIST_MAX_LENGTH
+            && $length > $long_list
+            && $length > $long_list + $self->_to_integer(substr($input, 1, $long_list)))
+        {
+            # long list
+            my $list_length = $self->_to_integer(substr($input, 1, $long_list));
+            return (1 + $long_list, $list_length, LIST);
+        }
+
+        croak "Invalid RLP input";
+    }
+
+    method _to_integer ($b) {
+
+        my $length = length($b);
+        croak "Invalid empty input" unless $length;
+
+        return ord($b) if $length == 1;
+
+        return ord(substr($b, -1)) + $self->_to_integer(substr($b, 0, -1)) * INPUT_LENGTH_DELIMITER;
+    }
 }
 
 =pod
@@ -215,7 +213,7 @@ Returns an hexadecimals string or an array reference in case of multiple items
 
 =head1 AUTHOR
 
-REFECO, C<< <refeco at cpan.org> >>
+Reginaldo Costa, C<< <refeco at cpan.org> >>
 
 =head1 BUGS
 
