@@ -1,4 +1,6 @@
 Revision history for Blockchain-Ethereum-RLP
+0.005
+    - Major refactoring
 0.004
     - Add standalone script
     - Fix minor documentation bugs
