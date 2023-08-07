@@ -1,6 +1,7 @@
 use v5.26;
 use Object::Pad;
 
+package Blockchain::Ethereum::RLP 0.005;
 class Blockchain::Ethereum::RLP {
     use Carp;
     use constant {
