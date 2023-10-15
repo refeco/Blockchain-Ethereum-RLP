@@ -1,0 +1,11 @@
+.perlcriticrc
+.perltidyrc
+
+blib/*
+pm_to_blib/*
+
+MYMETA.json
+MYMETA.yml
+
+Makefile$
+MANIFEST.SKIP
