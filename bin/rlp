@@ -1,8 +1,6 @@
 #!/usr/bin/env perl
-
-=head1 NAME
-
-rlp
+# PODNAME: RLP
+# ABSTRACT: Command line RLP encoding/decoding utility
 
 =head1 SYNOPSIS
 

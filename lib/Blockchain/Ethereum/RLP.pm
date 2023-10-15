@@ -1,14 +1,12 @@
 use v5.26;
 use Object::Pad;
+# ABSTRACT: Ethereum RLP encoding/decoding utility
 
-package Blockchain::Ethereum::RLP 0.007;
+package Blockchain::Ethereum::RLP;
 class Blockchain::Ethereum::RLP;
 
-=encoding utf8
-
-=head1 NAME
-
-Blockchain::Ethereum::RLP - Ethereum RLP encoding/decoding utility
+# AUTHORITY
+# VERSION
 
 =head1 SYNOPSIS
 
@@ -38,13 +36,9 @@ use constant {
     INPUT_LENGTH_DELIMITER  => 256,
 };
 
-=head2 encode
+=method encode
 
 Encodes the given input to RLP
-
-Usage:
-
-    encode(hex string /  hex array reference) ->  encoded bytes
 
 =over 4
 
@@ -104,13 +98,9 @@ method _to_binary ($x) {
     return $self->_to_binary(int($x / INPUT_LENGTH_DELIMITER)) . chr($x % INPUT_LENGTH_DELIMITER);
 }
 
-=head2 decode
+=method decode
 
 Decode the given input from RLP to the specific return type
-
-Usage:
-
-    decode(RLP encoded bytes) -> hexadecimal string / array reference
 
 =over 4
 
@@ -203,23 +193,3 @@ method _to_integer ($b) {
 }
 
 1;
-
-__END__
-
-=head1 AUTHOR
-
-Reginaldo Costa, C<< <refeco at cpan.org> >>
-
-=head1 BUGS
-
-Please report any bugs or feature requests to L<https://github.com/refeco/perl-RPL>
-
-=head1 LICENSE AND COPYRIGHT
-
-This software is Copyright (c) 2023 by REFECO.
-
-This is free software, licensed under:
-
-  The MIT License
-
-=cut
