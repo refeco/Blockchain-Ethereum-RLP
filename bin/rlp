@@ -2,6 +2,9 @@
 # PODNAME: RLP
 # ABSTRACT: Command line RLP encoding/decoding utility
 
+# VERSION
+# AUTHORITY
+
 =head1 SYNOPSIS
 
 rlp [options] [params]
