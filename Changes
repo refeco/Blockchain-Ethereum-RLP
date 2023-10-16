@@ -1,5 +1,6 @@
 {{$NEXT}}
-
+    [Bug fixes]
+    - Remove xt files and add perlcritirc and perltidyrc to build
 0.008     2023-10-14 22:55:31-03:00 America/Sao_Paulo
     [Improvements]
     - Add Dist::Zilla
