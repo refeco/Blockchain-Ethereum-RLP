@@ -4,7 +4,7 @@ Blockchain::Ethereum::RLP - Ethereum RLP encoding/decoding utility
 
 # VERSION
 
-version 0.009
+version 0.010
 
 # SYNOPSIS
 
