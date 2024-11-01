@@ -1,16 +1,10 @@
-use v5.26;
+package Blockchain::Ethereum::RLP;
 
+use v5.26;
 use strict;
 use warnings;
-no indirect;
-use feature 'signatures';
 
-use Object::Pad;
 # ABSTRACT: Ethereum RLP encoding/decoding utility
-
-package Blockchain::Ethereum::RLP;
-class Blockchain::Ethereum::RLP;
-
 # AUTHORITY
 # VERSION
 
@@ -42,6 +36,12 @@ use constant {
     INPUT_LENGTH_DELIMITER  => 256,
 };
 
+sub new {
+    my $class = shift;
+    my $self  = {};
+    return bless $self, $class;
+}
+
 =method encode
 
 Encodes the given input to RLP
@@ -56,7 +56,8 @@ Return the encoded bytes
 
 =cut
 
-method encode ($input) {
+sub encode {
+    my ($self, $input) = @_;
 
     croak 'No input given' unless defined $input;
 
@@ -86,7 +87,8 @@ method encode ($input) {
     return $self->_encode_length($input_length, SINGLE_BYTE_MAX_LENGTH) . $hex;
 }
 
-method _encode_length ($length, $offset) {
+sub _encode_length {
+    my ($self, $length, $offset) = @_;
 
     return chr($length + $offset) if $length <= BYTE_LENGTH_DELIMITER;
 
@@ -98,7 +100,8 @@ method _encode_length ($length, $offset) {
     croak "Input too long";
 }
 
-method _to_binary ($x) {
+sub _to_binary {
+    my ($self, $x) = @_;
 
     return '' unless $x;
     return $self->_to_binary(int($x / INPUT_LENGTH_DELIMITER)) . chr($x % INPUT_LENGTH_DELIMITER);
@@ -118,7 +121,8 @@ Returns an hexadecimals string or an array reference in case of multiple items
 
 =cut
 
-method decode ($input) {
+sub decode {
+    my ($self, $input) = @_;
 
     return [] unless length $input;
 
@@ -148,7 +152,8 @@ method decode ($input) {
     return \@output;
 }
 
-method _decode_length ($input) {
+sub _decode_length {
+    my ($self, $input) = @_;
 
     my $length = length($input);
     croak "Invalid empty input" unless $length;
@@ -188,7 +193,8 @@ method _decode_length ($input) {
     croak "Invalid RLP input";
 }
 
-method _to_integer ($b) {
+sub _to_integer {
+    my ($self, $b) = @_;
 
     my $length = length($b);
     croak "Invalid empty input" unless $length;
